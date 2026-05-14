@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/duxa174/olcrtc/compare/v1.4.0...v1.5.0) (2026-05-14)
+
+
+### Features
+
+* added ffmpeg ([ab61f46](https://github.com/duxa174/olcrtc/commit/ab61f46d66dcd384e4864216f26839c1179321f6))
+
 ## [1.4.0](https://github.com/duxa174/olcrtc/compare/v1.3.0...v1.4.0) (2026-05-14)
 
 
