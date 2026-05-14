@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:${ALPINE_VERSION} AS runtime
 
-RUN apk add --no-cache ca-certificates tzdata && \
+RUN apk add --no-cache ca-certificates tzdata ffmpeg && \
     addgroup -S olcrtc && \
     mkdir -p /usr/share/olcrtc /var/lib/olcrtc && \
     adduser -S -D -h /var/lib/olcrtc -s /sbin/nologin -G olcrtc olcrtc && \
