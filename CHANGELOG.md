@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.2.0](https://github.com/duxa174/olcrtc/compare/v2.1.0...v2.2.0) (2026-05-18)
+
+
+### Features
+
+* add peer-addressed routing across transport and engine layers ([143f6dd](https://github.com/duxa174/olcrtc/commit/143f6dd8a6706a229504547c65de0af4b181dd9d))
+* **config,script:** validate UTF-8 config and hex encryption keys ([4adea88](https://github.com/duxa174/olcrtc/commit/4adea8824f79ad1996892e912837e4eeb11bc26c))
+* **docker:** add ffmpeg and media env config ([6db5a53](https://github.com/duxa174/olcrtc/commit/6db5a53351cd01a0971af89cb6c8e63088a6adeb))
+* filter noisy log lines from stderr at the fd level ([7ca82df](https://github.com/duxa174/olcrtc/commit/7ca82dfa747d278755e113ae470b62a4103cf331))
+* **script:** add cnc mode and Go build caching ([32b8c8e](https://github.com/duxa174/olcrtc/commit/32b8c8ef3e56acf312b546d405b3a64d20526a56))
+* **script:** improve Jitsi room configuration in cnc and srv ([e766713](https://github.com/duxa174/olcrtc/commit/e7667136b0ec53a5879693f3cbb34a0356d83401))
+* **scripts:** add jitsi as default auth/carrier option ([97ea7c2](https://github.com/duxa174/olcrtc/commit/97ea7c23fbbc90bad2bdceeac6d9ecc2cb49b0dd))
+
+
+### Bug Fixes
+
+* golangci ([95b7375](https://github.com/duxa174/olcrtc/commit/95b73750c9e53333b7a7c3a0bf3eccb80a8bf356))
+* handle graceful control shutdown and reconnects ([c6c301c](https://github.com/duxa174/olcrtc/commit/c6c301c0587a89ef6e62bc113124152b79c6bd68))
+* **logger:** suppress noisy Pion TURN refresh logs ([f1cad5d](https://github.com/duxa174/olcrtc/commit/f1cad5d6a260c9ae9fbe8a2c86bd138224be639c))
+
+
+### Refactors
+
+* **cnc:** use host network and enforce SOCKS auth for non-loopback ([b2583d3](https://github.com/duxa174/olcrtc/commit/b2583d327c98df337b0b0bd8b0ec5bc8897e76b3))
+* **logger:** extract DisableNoisyPionLogs helper ([4ce5d03](https://github.com/duxa174/olcrtc/commit/4ce5d0356e7b03c8243b4bcf1f1ab2cc84ae403d))
+* move stderr filter to unix build-tagged file ([92fbe7e](https://github.com/duxa174/olcrtc/commit/92fbe7edda6b1ae2a7f151c8300a22a8dbbe745f))
+* **server:** replace context with done channel for stop signal ([535c3b7](https://github.com/duxa174/olcrtc/commit/535c3b75d10b2e95456428b38e5c5f1881f4dbc3))
+
 ## [2.1.0](https://github.com/duxa174/olcrtc/compare/v2.0.0...v2.1.0) (2026-05-17)
 
 
