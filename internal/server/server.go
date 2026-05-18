@@ -57,11 +57,14 @@ type HealthFunc func(control.Status)
 // Server handles incoming tunnel connections and proxies their traffic.
 type Server struct {
 	ln             transport.Transport
+	peerLn         transport.PeerTransport
 	cipher         *crypto.Cipher
 	conn           *muxconn.Conn
 	session        *smux.Session
+	controlStrm    *smux.Stream
 	controlStop    context.CancelFunc
 	sessMu         sync.RWMutex
+	peerSessions   map[string]*peerSession
 	reinstallMu    sync.Mutex
 	wg             sync.WaitGroup
 	authHook       handshake.AuthFunc
@@ -76,6 +79,18 @@ type Server struct {
 	socksProxyPort int
 	liveness       control.Config
 	health         *runtime.HealthTracker
+	done           chan struct{}
+	doneOnce       sync.Once
+}
+
+type peerSession struct {
+	peerID      string
+	conn        *muxconn.Conn
+	session     *smux.Session
+	controlStrm *smux.Stream
+	controlStop context.CancelFunc
+	sessionID   string
+	deviceID    string
 }
 
 // ConnectRequest is a message from the client to establish a new connection.
@@ -153,6 +168,8 @@ func Run(ctx context.Context, cfg Config) error {
 		socksProxyPort: cfg.SOCKSProxyPort,
 		liveness:       cfg.Liveness,
 		health:         runtime.NewHealthTracker(cfg.OnHealth),
+		peerSessions:   make(map[string]*peerSession),
+		done:           make(chan struct{}),
 	}
 	s.setupResolver()
 
@@ -214,25 +231,29 @@ func (s *Server) bringUpLink(
 	cancel context.CancelFunc,
 ) error {
 	ln, err := transport.New(ctx, cfg.Transport, transport.Config{
-		Carrier:   cfg.Carrier,
-		RoomURL:   cfg.RoomURL,
-		Engine:    cfg.Engine,
-		URL:       cfg.URL,
-		Token:     cfg.Token,
-		ChannelID: cfg.ChannelID,
-		DeviceID:  "",
-		Name:      names.Generate(),
-		OnData:    s.onData,
-		DNSServer: s.dnsServer,
-		ProxyAddr: s.socksProxyAddr,
-		ProxyPort: s.socksProxyPort,
-		Options:   cfg.TransportOptions,
-		Traffic:   cfg.Traffic,
+		Carrier:    cfg.Carrier,
+		RoomURL:    cfg.RoomURL,
+		Engine:     cfg.Engine,
+		URL:        cfg.URL,
+		Token:      cfg.Token,
+		ChannelID:  cfg.ChannelID,
+		DeviceID:   "",
+		Name:       names.Generate(),
+		OnData:     s.onData,
+		OnPeerData: s.onPeerData,
+		DNSServer:  s.dnsServer,
+		ProxyAddr:  s.socksProxyAddr,
+		ProxyPort:  s.socksProxyPort,
+		Options:    cfg.TransportOptions,
+		Traffic:    cfg.Traffic,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create transport: %w", err)
 	}
 	s.ln = ln
+	if peerLn, ok := ln.(transport.PeerTransport); ok && peerLn.SupportsPeerRouting() {
+		s.peerLn = peerLn
+	}
 
 	ln.SetEndedCallback(func(reason string) {
 		logger.Infof("Server link reported conference end: %s", reason)
@@ -247,7 +268,9 @@ func (s *Server) bringUpLink(
 	})
 
 	logger.Infof("Connecting transport=%s carrier=%s ...", cfg.Transport, cfg.Carrier)
-	s.installSession()
+	if s.peerLn == nil {
+		s.installSession()
+	}
 
 	if err := ln.Connect(ctx); err != nil {
 		return fmt.Errorf("failed to connect link: %w", err)
@@ -307,10 +330,12 @@ func (s *Server) reinstallSession(dead *smux.Session) {
 	}
 	oldSess := s.session
 	oldConn := s.conn
+	oldControl := s.controlStrm
 	oldControlStop := s.controlStop
 	oldSID := s.sessionID
 	s.session = newSess
 	s.conn = newConn
+	s.controlStrm = nil
 	s.controlStop = nil
 	s.sessionID = ""
 	s.deviceID = ""
@@ -325,6 +350,9 @@ func (s *Server) reinstallSession(dead *smux.Session) {
 	if oldConn != nil {
 		_ = oldConn.Close()
 	}
+	if oldControl != nil {
+		_ = oldControl.Close()
+	}
 	if oldSID != "" {
 		s.onClose(oldSID, "reconnect")
 	}
@@ -334,9 +362,13 @@ func (s *Server) closeSession() {
 	s.sessMu.Lock()
 	sess := s.session
 	conn := s.conn
+	control := s.controlStrm
 	controlStop := s.controlStop
+	peers := s.peerSessions
+	s.peerSessions = make(map[string]*peerSession)
 	s.session = nil
 	s.conn = nil
+	s.controlStrm = nil
 	s.controlStop = nil
 	oldSID := s.sessionID
 	s.sessionID = ""
@@ -346,6 +378,7 @@ func (s *Server) closeSession() {
 	if controlStop != nil {
 		controlStop()
 	}
+	notifyControlClose(control)
 	if sess != nil {
 		_ = sess.Close()
 	}
@@ -355,6 +388,50 @@ func (s *Server) closeSession() {
 	if oldSID != "" {
 		s.onClose(oldSID, "closed")
 	}
+	for _, ps := range peers {
+		s.closePeerSession(ps, "closed")
+	}
+}
+
+func (s *Server) removePeerSession(peerID, reason string) {
+	s.sessMu.Lock()
+	ps := s.peerSessions[peerID]
+	delete(s.peerSessions, peerID)
+	s.sessMu.Unlock()
+	if ps != nil {
+		s.closePeerSession(ps, reason)
+	}
+}
+
+func (s *Server) closePeerSession(ps *peerSession, reason string) {
+	if ps.controlStop != nil {
+		ps.controlStop()
+	}
+	notifyControlClose(ps.controlStrm)
+	if ps.session != nil {
+		_ = ps.session.Close()
+	}
+	if ps.conn != nil {
+		_ = ps.conn.Close()
+	}
+	if ps.controlStrm != nil {
+		_ = ps.controlStrm.Close()
+	}
+	if ps.sessionID != "" {
+		s.onClose(ps.sessionID, reason)
+	}
+}
+
+func notifyControlClose(stream *smux.Stream) {
+	if stream == nil {
+		return
+	}
+	_ = stream.SetWriteDeadline(time.Now().Add(2 * time.Second))
+	if err := control.SendClose(stream); err == nil {
+		time.Sleep(200 * time.Millisecond)
+	}
+	_ = stream.SetWriteDeadline(time.Time{})
+	_ = stream.CloseWrite()
 }
 
 func (s *Server) onData(data []byte) {
@@ -366,10 +443,55 @@ func (s *Server) onData(data []byte) {
 	}
 }
 
+func (s *Server) onPeerData(peerID string, data []byte) {
+	ps := s.getPeerSession(peerID)
+	if ps == nil {
+		return
+	}
+	ps.conn.Push(data)
+}
+
+func (s *Server) getPeerSession(peerID string) *peerSession {
+	if peerID == "" || s.peerLn == nil {
+		return nil
+	}
+	s.sessMu.Lock()
+	if ps := s.peerSessions[peerID]; ps != nil {
+		s.sessMu.Unlock()
+		return ps
+	}
+	conn := muxconn.NewPeer(s.peerLn, s.cipher, peerID)
+	sess, err := smux.Server(conn, smuxConfig(linkMaxPayload(s.ln)))
+	if err != nil {
+		s.sessMu.Unlock()
+		logger.Warnf("smux server init failed for peer %s: %v", peerID, err)
+		_ = conn.Close()
+		return nil
+	}
+	ps := &peerSession{peerID: peerID, conn: conn, session: sess}
+	s.peerSessions[peerID] = ps
+	s.sessMu.Unlock()
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		s.servePeer(ps)
+	}()
+	return ps
+}
+
 // serve drives the smux Accept loop. The first accepted stream on a given
 // smux session is the control stream — the handshake runs there. Subsequent
 // streams are tunnel streams and proxy traffic.
 func (s *Server) serve(ctx context.Context) {
+	if s.peerLn != nil {
+		<-ctx.Done()
+		return
+	}
+	s.serveSingle(ctx)
+}
+
+func (s *Server) serveSingle(ctx context.Context) {
 	for {
 		if contextDone(ctx) {
 			return
@@ -406,9 +528,15 @@ func (s *Server) serve(ctx context.Context) {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			s.handleStream(ctx, stream)
+			s.handleStream(ctx, stream, s.currentSessionID())
 		}()
 	}
+}
+
+func (s *Server) currentSessionID() string {
+	s.sessMu.RLock()
+	defer s.sessMu.RUnlock()
+	return s.sessionID
 }
 
 func contextDone(ctx context.Context) bool {
@@ -462,6 +590,58 @@ func (s *Server) acceptHandshake(ctx context.Context, sess *smux.Session) bool {
 	return true
 }
 
+func (s *Server) servePeer(ps *peerSession) {
+	if !s.acceptPeerHandshake(ps) {
+		s.removePeerSession(ps.peerID, "closed")
+		return
+	}
+	for {
+		if s.stopping() {
+			return
+		}
+		stream, err := ps.session.AcceptStream()
+		if err != nil {
+			if s.stopping() {
+				return
+			}
+			logger.Debugf("AcceptStream(peer=%s) returned %v - closing peer session", ps.peerID, err)
+			s.removePeerSession(ps.peerID, "closed")
+			return
+		}
+		s.wg.Add(1)
+		go func() {
+			defer s.wg.Done()
+			s.handleStream(context.Background(), stream, ps.sessionID)
+		}()
+	}
+}
+
+func (s *Server) acceptPeerHandshake(ps *peerSession) bool {
+	stream, err := ps.session.AcceptStream()
+	if err != nil {
+		if !s.stopping() {
+			logger.Debugf("AcceptStream(control peer=%s) returned %v", ps.peerID, err)
+		}
+		return false
+	}
+	_ = stream.SetDeadline(time.Now().Add(handshake.DefaultTimeout))
+	hello, sid, err := handshake.Server(stream, s.authHook)
+	_ = stream.SetDeadline(time.Time{})
+	if err != nil {
+		logger.Warnf("handshake failed peer=%s: %v", ps.peerID, err)
+		_ = stream.Close()
+		return false
+	}
+	ps.controlStrm = stream
+	ps.deviceID = hello.DeviceID
+	ps.sessionID = sid
+	s.recordSession(sid)
+	s.onOpen(sid, hello.DeviceID, hello.Claims)
+	logger.Infof("session %s opened (device=%s peer=%s)", sid, hello.DeviceID, ps.peerID)
+	s.startPeerControlLoop(ps, stream)
+	return true
+}
+
 func (s *Server) resetLinkPeer() {
 	s.sessMu.RLock()
 	ln := s.ln
@@ -474,6 +654,7 @@ func (s *Server) resetLinkPeer() {
 func (s *Server) startControlLoop(ctx context.Context, sess *smux.Session, stream *smux.Stream) {
 	controlCtx, stop := context.WithCancel(ctx)
 	s.sessMu.Lock()
+	s.controlStrm = stream
 	s.controlStop = stop
 	s.sessMu.Unlock()
 
@@ -519,8 +700,66 @@ func (s *Server) startControlLoop(ctx context.Context, sess *smux.Session, strea
 		}
 		s.recordReconnect()
 		logger.Infof("server reconnect reason=liveness - reinstalling smux session")
+		s.resetLinkPeer()
 		s.reinstallSession(sess)
 	}()
+}
+
+func (s *Server) startPeerControlLoop(ps *peerSession, stream *smux.Stream) {
+	controlCtx, stop := context.WithCancel(context.Background())
+	ps.controlStop = stop
+
+	liveness := s.liveness
+	onPong := liveness.OnPong
+	onMissedPong := liveness.OnMissedPong
+	onUnhealthy := liveness.OnUnhealthy
+	liveness.OnPong = func(h control.Health) {
+		s.recordPong(h)
+		logger.Debugf("control alive session=%s peer=%s rtt=%v seq=%d", ps.sessionID, ps.peerID, h.RTT, h.Seq)
+		if onPong != nil {
+			onPong(h)
+		}
+	}
+	liveness.OnMissedPong = func(missed int) {
+		s.recordMissed(missed)
+		logger.Warnf("control missed pong on server: session=%s peer=%s missed_pongs=%d",
+			ps.sessionID, ps.peerID, missed)
+		if onMissedPong != nil {
+			onMissedPong(missed)
+		}
+	}
+	liveness.OnUnhealthy = func(missed int) {
+		s.recordUnhealthy(missed)
+		logger.Warnf("control stream unhealthy on server: session=%s peer=%s missed_pongs=%d",
+			ps.sessionID, ps.peerID, missed)
+		if onUnhealthy != nil {
+			onUnhealthy(missed)
+		}
+	}
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		defer func() { _ = stream.Close() }()
+		err := control.Run(controlCtx, stream, liveness)
+		if controlCtx.Err() != nil || s.stopping() {
+			return
+		}
+		if err != nil {
+			logger.Warnf("server control stream ended session=%s peer=%s: %v", ps.sessionID, ps.peerID, err)
+		}
+		s.recordReconnect()
+		s.removePeerSession(ps.peerID, "reconnect")
+	}()
+}
+
+func (s *Server) stopping() bool {
+	select {
+	case <-s.done:
+		return true
+	default:
+		return false
+	}
 }
 
 // Status returns the latest server-side control health snapshot.
@@ -535,14 +774,20 @@ func (s *Server) recordUnhealthy(missed int)     { s.health.RecordUnhealthy(miss
 func (s *Server) recordReconnect()               { s.health.RecordReconnect() }
 
 func (s *Server) shutdown() {
+	if s.done != nil {
+		s.doneOnce.Do(func() { close(s.done) })
+	}
 	s.closeSession()
 	if s.ln != nil {
 		_ = s.ln.Close()
 	}
 }
 
-func (s *Server) handleStream(_ context.Context, stream *smux.Stream) {
+func (s *Server) handleStream(_ context.Context, stream *smux.Stream, sessionID string) {
 	defer func() { _ = stream.Close() }()
+	if sessionID == "" {
+		sessionID = s.currentSessionID()
+	}
 
 	// Read the connect JSON. The client writes the whole JSON in one
 	// stream.Write so it usually arrives intact; tolerate fragmentation
@@ -557,7 +802,7 @@ func (s *Server) handleStream(_ context.Context, stream *smux.Stream) {
 			header = append(header, tmp[:n]...)
 			if req, ok := parseConnectRequest(header); ok {
 				_ = stream.SetReadDeadline(time.Time{})
-				s.dispatch(stream, req)
+				s.dispatch(stream, req, sessionID)
 				return
 			}
 		}
@@ -587,13 +832,9 @@ func defaultAuthHook(_ string, _ map[string]any) (string, error) {
 	return uuid.NewString(), nil
 }
 
-func (s *Server) dispatch(stream *smux.Stream, req ConnectRequest) {
+func (s *Server) dispatch(stream *smux.Stream, req ConnectRequest, sessionID string) {
 	addr := net.JoinHostPort(req.Addr, strconv.Itoa(req.Port))
 	logger.Infof("sid=%d connect %s", stream.ID(), addr)
-
-	s.sessMu.RLock()
-	sid := s.sessionID
-	s.sessMu.RUnlock()
 
 	dialStart := time.Now()
 	conn, err := s.dial(req)
@@ -629,7 +870,7 @@ func (s *Server) dispatch(stream *smux.Stream, req ConnectRequest) {
 		bytesIn = uint64(in)
 	}
 	if s.onTraffic != nil {
-		s.onTraffic(sid, addr, bytesIn, bytesOut)
+		s.onTraffic(sessionID, addr, bytesIn, bytesOut)
 	}
 }
 

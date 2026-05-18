@@ -72,6 +72,8 @@ func run() error {
 }
 
 func runWithArgs(args []string) error {
+	logger.DisableNoisyPionLogs()
+	installStderrFilter()
 	session.RegisterDefaults()
 
 	if len(args) != 1 || args[0] == "-h" || args[0] == "--help" || args[0] == "-help" {
@@ -333,14 +335,25 @@ func (f filteredWriter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+func isNoisyLogLine(line []byte) bool {
+	for _, prefix := range noisyPrefixes {
+		if bytes.Contains(line, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func configureLogging(debug bool) {
+	installStderrFilter()
+	log.SetOutput(filteredWriter{w: os.Stderr})
+	logger.DisableNoisyPionLogs()
 	if debug {
 		logger.SetVerbose(true)
 		return
 	}
 	_ = os.Setenv("PION_LOG_DISABLE", "all")
 	lksdk.SetLogger(protoLogger.GetDiscardLogger())
-	log.SetOutput(filteredWriter{w: os.Stderr})
 }
 
 func resolveDataDir(dataDir string) (string, error) {

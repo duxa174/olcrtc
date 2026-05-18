@@ -320,3 +320,15 @@ func TestLoadMissing(t *testing.T) {
 		t.Fatal("expected error for missing file")
 	}
 }
+
+func TestLoadInvalidUTF8(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "olcrtc.yaml")
+	if err := os.WriteFile(path, []byte{'m', 'o', 'd', 'e', ':', ' ', 0xff}, 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := Load(path)
+	if !errors.Is(err, ErrConfigInvalidUTF8) {
+		t.Fatalf("Load() error = %v, want invalid UTF-8 error", err)
+	}
+}
