@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.3.0](https://github.com/duxa174/olcrtc/compare/v2.2.0...v2.3.0) (2026-05-20)
+
+
+### Features
+
+* **vp8channel:** batch multiple KCP packets per RTP sample ([bfa6d73](https://github.com/duxa174/olcrtc/commit/bfa6d73ad1f561750a0724e4a9c7636870cf4e20))
+
+
+### Bug Fixes
+
+* golangci ([ccf3ff0](https://github.com/duxa174/olcrtc/commit/ccf3ff09886617fac660f9a5a4e83c0dcae7eeff))
+* **runtime:** account for smux frame overhead in wire payload cap ([74bb402](https://github.com/duxa174/olcrtc/commit/74bb402289069b6464eeda539ecef376fdfcea19))
+
+
+### Refactors
+
+* remove SaluteJazz carrier support ([085aadc](https://github.com/duxa174/olcrtc/commit/085aadcad718f58b8bed7b4af41d054202102d76))
+* **vp8channel:** add ResetPeer with epoch rotation and mutex [#60](https://github.com/duxa174/olcrtc/issues/60) ([2b6f77f](https://github.com/duxa174/olcrtc/commit/2b6f77f0f6e447cd12d345daaa5d57b4d4c920cc))
+
 ## [2.2.0](https://github.com/duxa174/olcrtc/compare/v2.1.0...v2.2.0) (2026-05-18)
 
 
