@@ -242,8 +242,8 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
 build/
 GEMINI.md
 code/package-lock.json
