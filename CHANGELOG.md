@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.3.1](https://github.com/duxa174/olcrtc/compare/v2.3.0...v2.3.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* cancel go t -&gt; startControlLoop ([5839b05](https://github.com/duxa174/olcrtc/commit/5839b05763566c0555515796d6e6202f73ae3c1e))
+* **client:** survive liveness loss without killing SOCKS listener ([4b7185f](https://github.com/duxa174/olcrtc/commit/4b7185f41181438e61c30f4cd1e0b9ed33d38bc1))
+* golangci ([618b210](https://github.com/duxa174/olcrtc/commit/618b21092650a66e03a890acc9fbee3057493d15))
+* **mobile:** preserve raw room id for vp8 binding ([9985a95](https://github.com/duxa174/olcrtc/commit/9985a95f2d075f63a501d5e4a5f8df941a423b7a))
+* **mobile:** preserve raw room id for vp8 binding ([5222d8a](https://github.com/duxa174/olcrtc/commit/5222d8a211c0c62ffb83c9adfa35b5bcd1e2520b))
+* **script:** correct default Jitsi base URL ([36d3373](https://github.com/duxa174/olcrtc/commit/36d337361955a7cfb30dc3e767443d3c92753708))
+
 ## [2.3.0](https://github.com/duxa174/olcrtc/compare/v2.2.0...v2.3.0) (2026-05-20)
 
 
