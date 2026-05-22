@@ -16,7 +16,7 @@ var errBoom = errors.New("boom")
 
 const (
 	testAuthWBStream = "wbstream"
-	testDNSServer    = "1.1.1.1:53"
+	testDNSServer    = "8.8.8.8:53"
 )
 
 func writeYAML(t *testing.T, body string) string {
@@ -88,9 +88,9 @@ func TestRunWithConfigValidationAndDataDirErrors(t *testing.T) {
 		Mode:      "srv",
 		Transport: "datachannel",
 		Auth:      "jitsi",
-		RoomID:    "https://meet.small-dm.ru/test",
+		RoomID:    "https://meet.cryptopro.ru/test",
 		KeyHex:    "key",
-		DNSServer: "1.1.1.1:53",
+		DNSServer: "8.8.8.8:53",
 	}
 	if err := runWithConfig(loadedConfig{scfg: scfg}); !errors.Is(err, ErrDataDirRequired) {
 		t.Fatalf("runWithConfig(no data dir) = %v, want %v", err, ErrDataDirRequired)
@@ -135,12 +135,12 @@ link: direct
 auth:
   provider: jitsi
 room:
-  id: https://meet.small-dm.ru/test
+  id: https://meet.cryptopro.ru/test
 crypto:
   key: key
 net:
   transport: datachannel
-  dns: 1.1.1.1:53
+  dns: 8.8.8.8:53
 data: `+dir+`
 `)
 
@@ -164,8 +164,8 @@ func TestRunWithArgsAppliesTransportDefaults(t *testing.T) {
 	oldRunSession := runSession
 	t.Cleanup(func() { runSession = oldRunSession })
 	runSession = func(_ context.Context, cfg session.Config) error {
-		if cfg.VP8.FPS != 25 || cfg.VP8.BatchSize != 1 {
-			t.Fatalf("VP8 defaults = fps %d batch %d, want 25/1", cfg.VP8.FPS, cfg.VP8.BatchSize)
+		if cfg.VP8.FPS != 60 || cfg.VP8.BatchSize != 64 {
+			t.Errorf("VP8 defaults = fps %d batch %d, want 60/64", cfg.VP8.FPS, cfg.VP8.BatchSize)
 		}
 		return nil
 	}
@@ -181,7 +181,7 @@ crypto:
   key: key
 net:
   transport: vp8channel
-  dns: 1.1.1.1:53
+  dns: 8.8.8.8:53
 data: `+dir+`
 `)
 
@@ -204,8 +204,8 @@ func TestRunWithArgsFailoverProfiles(t *testing.T) {
 	var seen []string
 	runSession = func(_ context.Context, cfg session.Config) error {
 		seen = append(seen, cfg.Auth+"/"+cfg.Transport)
-		if cfg.Auth == "wbstream" && (cfg.VP8.FPS != 25 || cfg.VP8.BatchSize != 1) {
-			t.Fatalf("VP8 defaults = fps %d batch %d, want 25/1", cfg.VP8.FPS, cfg.VP8.BatchSize)
+		if cfg.Auth == "wbstream" && (cfg.VP8.FPS != 60 || cfg.VP8.BatchSize != 64) {
+			t.Errorf("VP8 defaults = fps %d batch %d, want 60/64", cfg.VP8.FPS, cfg.VP8.BatchSize)
 		}
 		return errBoom
 	}
@@ -216,7 +216,7 @@ link: direct
 crypto:
   key: key
 net:
-  dns: 1.1.1.1:53
+  dns: 8.8.8.8:53
 profiles:
   - name: wb-primary
     auth:

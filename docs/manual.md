@@ -12,9 +12,21 @@
 Этот способ для тех кто хочет собрать бинарник руками без Docker/Podman.
 Нужен Go 1.25+, mage, git.
 
-Проект в бете. По проблемам: t.me/openlibrecommunity
+---
+
+
+### swap (ОЗУ)
+
+Если у вас меньше 4ГБ оперативной памяти, сборка может вылетать. **Обязательно включите SWAP**:
+
+```bash
+sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+```
+
 
 ---
+
+## Что нужно установить
 
 ## Шаг 1: Установить git
 
@@ -31,7 +43,7 @@ dnf install git       # Fedora / RHEL   / CentOS
 ### Arch / Fedora (всё просто)
 
 ```sh
-pacman -S go    # Arch / CachyOS / Manjaro
+pacman -S go    # Arch    / CachyOS / Manjaro
 dnf install go  # Fedora / RHEL   / CentOS
 ```
 
@@ -106,7 +118,6 @@ git clone https://github.com/openlibrecommunity/olcrtc --recurse-submodules
 cd olcrtc
 ```
 
-`--recurse-submodules` обязателен - без него videochannel не соберётся.
 
 ---
 
@@ -121,9 +132,6 @@ mage cross   # все платформы сразу (если собираешь
 
 ```
 build/olcrtc-linux-amd64
-build/olcrtc-linux-arm64
-build/olcrtc-windows-amd64.exe
-build/olcrtc-darwin-amd64
 ```
 
 ---
@@ -147,7 +155,7 @@ openssl rand -hex 32
 
 ### jitsi + datachannel (рекомендуется)
 
-Самый простой способ: используй любой self-hosted или публичный Jitsi Meet инстанс. Регистрация не нужна, имя комнаты выдумывается на лету. По умолчанию в примерах ниже — `meet.small-dm.ru`, но подойдёт любой другой (`meet.jit.si`, свой self-hosted и т.п.).
+Самый простой способ: используй любой self-hosted или публичный Jitsi Meet инстанс. Регистрация не нужна, имя комнаты выдумывается на лету. По умолчанию в примерах ниже — `meet.cryptopro.ru`, но подойдёт любой другой (`meet.jit.si`, свой self-hosted и т.п.).
 
 Создай YAML конфиг:
 
@@ -157,12 +165,12 @@ mode: srv
 auth:
   provider: jitsi
 room:
-  id: "https://meet.small-dm.ru/myroom"
+  id: "https://meet.cryptopro.ru/myroom"
 crypto:
   key: "d823fa01cb3e0609b67322f7cf984c4ee2e4ce2e294936fc24ef38c9e59f4799"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 data: data
 ```
 
@@ -176,7 +184,7 @@ data: data
 
 ### wbstream + vp8channel (альтернатива)
 
-Создай руму через сайт [wbstream](https://stream.wb.ru) или заранее сгенерируй ID через `mode: gen` с `auth.provider: wbstream`.
+Создай руму через сайт [wbstream](https://stream.wb.ru) и вставь её ID в `room.id`.
 
 `wbstream + datachannel` **не работает** в обычном guest flow — WB Stream выдаёт токены с `canPublishData=false`, и DC не маршрутизирует данные. Для обычного использования выбирай `vp8channel`.
 
@@ -193,7 +201,7 @@ crypto:
   key: "d823fa01cb3e0609b67322f7cf984c4ee2e4ce2e294936fc24ef38c9e59f4799"
 net:
   transport: vp8channel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 data: data
 ```
 
@@ -231,12 +239,12 @@ mode: cnc
 auth:
   provider: jitsi
 room:
-  id: "https://meet.small-dm.ru/myroom"
+  id: "https://meet.cryptopro.ru/myroom"
 crypto:
   key: "<hex-key-такой-же-как-на-сервере>"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -262,7 +270,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: vp8channel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -292,7 +300,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: vp8channel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -313,12 +321,6 @@ curl --socks5-hostname 127.0.0.1:8808 https://icanhazip.com
 
 Должен вернуть IP сервера.
 
-Или выставить переменную чтобы весь трафик шёл через прокси:
-
-```sh
-export all_proxy=socks5h://127.0.0.1:8808
-curl https://icanhazip.com
-```
 
 ---
 

@@ -22,17 +22,17 @@
 **Легенда:**
 - `+` - работает (pass в E2E тестах)
 - `-` - не работает / не поддерживается (fail в E2E тестах)
-- `~` - нестабильно (может работать, но нестабильно)
+- `~` - нестабильно (может работать)
 
-**Telemost:** только vp8channel стабильно проходит. DataChannel удалён из Telemost. seichannel не поддерживается. videochannel — best effort.
+**Telemost:** только vp8channel стабильно проходит. DataChannel удалён из Telemost. seichannel не поддерживается. videochannel - медленно.
 
-**WBStream:** все транспорты кроме datachannel работают. DataChannel в обычном guest flow без выдавания модератора не работает — WB Stream выдаёт токены с `canPublishData=false`, и DC не маршрутизирует данные.
+**WBStream:** все транспорты кроме datachannel работают. DataChannel в обычном guest flow без выдавания модератора не работает - WB Stream выдаёт токены с `canPublishData=false`, и DC не маршрутизирует данные.
 
-**Jitsi:** datachannel стабильно проходит — реализован поверх colibri-ws bridge channel и шлёт байты через `EndpointMessage{raw}` broadcast. Подходит для self-hosted и публичных Jitsi Meet инстансов без аутентификации (`https://meet.small-dm.ru/...`, `https://meet.jit.si/...` и т.п.). Видео-транспорты (vp8channel, seichannel, videochannel) экспонируют sendable VideoTrack через pion PeerConnection после Jingle session-accept, но Jicofo требует дополнительных протокольных шагов (LastN, ReceiverVideoConstraints, source-add) для маршрутизации видео — поэтому они помечены `~` (best effort).
+**Jitsi:** datachannel стабильно проходит - реализован поверх colibri-ws bridge channel и шлёт байты через `EndpointMessage{raw}` broadcast. Подходит для self-hosted и публичных Jitsi Meet инстансов без аутентификации (`https://meet.cryptopro.ru/...`, `https://meet.jit.si/...` и т.п.). Видео-транспорты (vp8channel, seichannel, videochannel) экспонируют sendable VideoTrack через pion PeerConnection после Jingle session-accept, но Jicofo требует дополнительных протокольных шагов (LastN, ReceiverVideoConstraints, source-add) для маршрутизации видео - поэтому они помечены `~` .
 
-**Jitsi + seichannel — отдельная оговорка.** SEI NAL-юниты идут пассажиром в H.264 видеопотоке, а Jicofo на self-hosted инстансах (например `meet.small-dm.ru`) периодически режет/откладывает upstream видео когда ресивера в комнате формально нет — для нас это выглядит как `seichannel ack timeout` при формально живом PeerConnection. В steady-state транспорт работает, но e2e матрица помечает его `Unstable` (флаппит): зелёного и красного результата в CI достаточно, тест suite на этом не валится. Для надёжной передачи данных через jitsi предпочтительнее `datachannel` или `vp8channel`.
+**Jitsi + seichannel — отдельная оговорка.** SEI NAL-юниты идут пассажиром в H.264 видеопотоке, а Jicofo на self-hosted инстансах (например `meet.cryptopro.ru`) периодически режет/откладывает upstream видео когда ресивера в комнате формально нет - для нас это выглядит как `seichannel ack timeout` при формально живом PeerConnection. В steady-state транспорт работает, но e2e матрица помечает его `Unstable` (флаппит): зелёного и красного результата в CI достаточно, тест suite на этом не валится. Для надёжной передачи данных через jitsi предпочтительнее `datachannel` или `vp8channel`.
 
-**Рекомендуемая комбинация: `jitsi + datachannel`** — стабильно работает на любом self-hosted или публичном Jitsi Meet (например `meet.small-dm.ru`), не требует регистрации, простая руму создания. Альтернатива: `wbstream + vp8channel` — стабильно для коммерческих сценариев, не требует специальных прав.
+**Рекомендуемая комбинация: `jitsi + datachannel`** — стабильно работает на любом self-hosted или публичном Jitsi Meet (например `meet.cryptopro.ru`), не требует регистрации, простая руму создания. Альтернатива: `wbstream + vp8channel` — стабильно для коммерческих сценариев, не требует специальных прав.
 
 Скорость по убыванию: `datachannel` > `vp8channel` > `seichannel` > `videochannel`
 
@@ -48,7 +48,7 @@
 | `room.id` | Room ID |
 | `crypto.key` или `crypto.key_file` | Ключ шифрования hex 64 символа. Генерация: `openssl rand -hex 32` |
 | `data` | Всегда `data` |
-| `net.dns` | DNS-сервер, например `1.1.1.1:53` |
+| `net.dns` | DNS-сервер, например `8.8.8.8:53` |
 
 ---
 
@@ -96,33 +96,11 @@ transport. Используй одинаковые traffic-настройки н
 
 ## mode: gen
 
-Генерирует Room ID заранее, не запуская сервер. Поддерживается для auth-провайдеров с автосозданием комнат: `wbstream`. Для `telemost` комнату нужно создавать вручную через сайт.
+`gen` оставлен для auth-провайдеров, которые умеют создавать комнаты через API.
+Сейчас встроенные провайдеры не поддерживают автосоздание комнат через `olcrtc`.
 
-**Обязательные поля:**
-
-| YAML поле | Описание |
-|-----------|----------|
-| `auth.provider` | `wbstream` |
-| `net.dns` | DNS-сервер |
-| `gen.amount` | Количество комнат |
-
-```yaml
-# gen.yaml
-mode: gen
-auth:
-  provider: wbstream
-net:
-  dns: "1.1.1.1:53"
-gen:
-  amount: 3
-```
-
-```sh
-./olcrtc gen.yaml
-# room-id-1
-# room-id-2
-# room-id-3
-```
+Для `telemost` и `wbstream` создай комнату через сайт сервиса и вставь её ID в
+`room.id`. Для `jitsi` укажи URL комнаты.
 
 ---
 
@@ -223,7 +201,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 data: data
 ```
 
@@ -238,7 +216,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -258,7 +236,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -289,7 +267,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: vp8channel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 vp8:
   fps: 60
   batch_size: 64
@@ -307,7 +285,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: vp8channel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -332,7 +310,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: seichannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 sei:
   fps: 60
   batch_size: 64
@@ -352,7 +330,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: seichannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -377,7 +355,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: videochannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 video:
   codec: qrcode
   width: 1080
@@ -399,7 +377,7 @@ crypto:
   key: "<hex-key>"
 net:
   transport: videochannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808

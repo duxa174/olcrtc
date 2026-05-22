@@ -1,6 +1,17 @@
+<div align="center">
+
+<img src="https://github.com/openlibrecommunity/material/blob/master/olcrtc.png" width="250" height="250">
+
+![License](https://img.shields.io/badge/license-WTFPL-0D1117?style=flat-square&logo=open-source-initiative&logoColor=green&labelColor=0D1117)
+![Golang](https://img.shields.io/badge/-Golang-0D1117?style=flat-square&logo=go&logoColor=00A7D0)
+
+</div>
+
+
+
 # olcRTC - общее описание
 
-`olcRTC` (OpenLibreCommunity RTC) - зашифрованный TCP-over-WebRTC туннель. Он маскирует трафик под обычное участие в WebRTC/SFU-сервисе: Jitsi Meet, Yandex Telemost или WB Stream.
+`olcRTC` (OpenLibreCommunity RTC) - зашифрованный TCP-over-WebRTC туннель. Он маскирует трафик под обычное участие в WebRTC/SFU-сервисе: Jitsi Meet, Yandex Telemost или WbStream.
 
 Проект: [github.com/openlibrecommunity/olcrtc](https://github.com/openlibrecommunity/olcrtc)  
 Лицензия: WTFPL  
@@ -8,22 +19,22 @@
 
 ## Зачем это нужно
 
-В сценариях, где прямой доступ к произвольному VPS нестабилен или заблокирован, полезно переносить трафик через сервисы, которые уже доступны у пользователя. Для внешнего наблюдателя соединение выглядит как обычный WebRTC-звонок с выбранным сервисом, а полезная нагрузка внутри дополнительно шифруется общим ключом `crypto.key`.
+В сценариях, где прямой доступ к произвольному VPS / IP заблокирован, приходится переносить трафик через сервисы, которые уже доступны у пользователя. Для внешнего наблюдателя соединение выглядит как обычный WebRTC-звонок по разрешенному IP сервиса, а полезная нагрузка внутри дополнительно шифруется общим ключом `crypto.key`.
 
 Базовая схема:
 
 ```text
 приложение
   -> SOCKS5 127.0.0.1:8808
-  -> olcrtc cnc
-  -> WebRTC/SFU сервис
-  -> olcrtc srv
-  -> интернет
+   -> olcrtc cnc
+    -> WebRTC/SFU сервис
+     -> olcrtc srv
+       -> интернет
 ```
 
 ## Как это работает
 
-Клиентский режим `cnc` поднимает локальный SOCKS5. Браузер, `curl`, sing-box или другое приложение подключается к нему как к обычному proxy.
+Клиентский режим `cnc` поднимает локальный SOCKS5. Браузер, curl, sing-box, olcbox или другое приложение подключается к нему как к обычному proxy.
 
 Серверный режим `srv` подключается к той же комнате/сессии, принимает зашифрованный smux stream и от своего имени открывает TCP-соединения к целевым адресам.
 
@@ -32,10 +43,10 @@
 ```text
 SOCKS CONNECT
   -> smux stream
-  -> XChaCha20-Poly1305
-  -> transport
-  -> engine
-  -> WebRTC/SFU
+   -> XChaCha20-Poly1305
+    -> transport
+     -> engine
+      -> WebRTC/SFU
 ```
 
 ## Режимы
@@ -60,9 +71,9 @@ olcrtc client.yaml
 | Provider | Engine | Комментарий |
 |---|---|---|
 | `jitsi` | `jitsi` | URL комнаты Jitsi, без отдельной регистрации |
-| `telemost` | `goolom` | credentials через Yandex Telemost API |
-| `wbstream` | `livekit` | guest flow WB Stream, умеет создавать комнаты для `gen` |
-| `none` | задаётся в `engine.name` | прямой engine-режим с `engine.url` и `engine.token` |
+| `telemost` | `goolom` | credentials через Yandex Telemost API, с отдельной регистрацией |
+| `wbstream` | `livekit` | credentials через WbBStream API, с отдельной регистрацией |
+| `none` | задаётся в `engine.name` | прямой engine-режим с `engine.url` и `engine.token`, с отдельной регистрацией |
 
 Термин `carrier` ещё встречается во внутреннем API и логах как историческое имя для выбранного auth/provider пути. В YAML актуальное поле - `auth.provider`.
 
@@ -72,9 +83,9 @@ olcrtc client.yaml
 
 | Engine | Пакет | Возможности |
 |---|---|---|
-| `livekit` | `internal/engine/livekit` | data packets и video tracks через LiveKit SDK |
+| `livekit` | `internal/engine/livekit` | data packets/video tracks/LiveKit SDK |
 | `goolom` | `internal/engine/goolom` | Telemost/Goolom signaling, publisher/subscriber PeerConnection |
-| `jitsi` | `internal/engine/jitsi` | Jitsi MUC/Jingle/colibri-ws, datachannel-путь и best-effort video |
+| `jitsi` | `internal/engine/jitsi` | Jitsi MUC/Jingle/colibri-ws, datachannel/best-effort video |
 
 `internal/engine/builtin` связывает `auth.provider` с нужным engine. Отдельного пакета `internal/carrier` в текущем проекте нет.
 
@@ -86,7 +97,7 @@ olcrtc client.yaml
 |---|---|---|
 | `datachannel` | нативный byte/data path engine | самый простой и быстрый путь, стабильно с Jitsi |
 | `vp8channel` | KCP поверх VP8-like video frames | основной video-path для WB Stream и Telemost |
-| `seichannel` | payload в H264 SEI NAL units, ACK/retry | fallback для WB Stream |
+| `seichannel` | payload в H264 SEI NAL units, ACK/retry | fallback для WB Stream / Jitsi|
 | `videochannel` | QR/tile кадры через ffmpeg, ACK/retry | экспериментальный визуальный транспорт |
 
 Рекомендуемый старт: `jitsi + datachannel`. Альтернатива: `wbstream + vp8channel`.
@@ -117,12 +128,12 @@ mode: srv
 auth:
   provider: jitsi
 room:
-  id: "https://meet.small-dm.ru/myroom"
+  id: "https://meet.cryptopro.ru/REPLACE_ME_WITH_ROOM_ID"
 crypto:
   key: "REPLACE_ME_WITH_64_HEX_CHARS"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 data: data
 ```
 
@@ -133,12 +144,12 @@ mode: cnc
 auth:
   provider: jitsi
 room:
-  id: "https://meet.small-dm.ru/myroom"
+  id: "https://meet.cryptopro.ru/REPLACE_ME_WITH_ROOM_ID"
 crypto:
   key: "REPLACE_ME_WITH_64_HEX_CHARS"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -174,8 +185,6 @@ data: data
 | `script` | интерактивные launchers и Docker entrypoint |
 | `docs` | документация и примеры YAML |
 
-Подробная карта для разработки: [project-map.md](project-map.md).
-
 ## Сборка
 
 ```bash
@@ -199,7 +208,7 @@ Go версия в сборочных скриптах: `1.25`. Для `videocha
 ```go
 sess, err := olcrtc.New(ctx, olcrtc.Config{
     Auth:   "jitsi",
-    RoomID: "https://meet.small-dm.ru/myroom",
+    RoomID: "https://meet.cryptopro.ru/myroom",
 })
 if err != nil {
     return err
@@ -213,9 +222,9 @@ conn, err := sess.Dial(ctx)
 srv := tunnel.New(tunnel.Config{
     Transport: "datachannel",
     Carrier:   "jitsi",
-    RoomURL:   "https://meet.small-dm.ru/myroom",
+    RoomURL:   "https://meet.cryptopro.ru/myroom",
     KeyHex:    "<64-char hex>",
-    DNSServer: "1.1.1.1:53",
+    DNSServer: "8.8.8.8:53",
 })
 err := srv.Run(ctx)
 ```
@@ -244,7 +253,7 @@ mage e2e
 Real-provider E2E включаются через переменные:
 
 ```bash
-E2E_CARRIERS=wbstream E2E_TRANSPORTS=vp8channel mage e2e
+E2E_CARRIERS=wbstream E2E_TRANSPORTS= vp8channel mage e2e
 ```
 
 ## Частые проблемы

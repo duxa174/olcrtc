@@ -15,7 +15,7 @@
 //
 //	sess, err := olcrtc.New(ctx, olcrtc.Config{
 //	    Auth:   "jitsi",
-//	    RoomID: "https://meet.small-dm.ru/myroom",
+//	    RoomID: "https://meet.cryptopro.ru/myroom",
 //	})
 //
 // Import the implementations you need via blank imports, or call [RegisterDefaults]:
@@ -67,7 +67,7 @@ type Config struct {
 	// --- common ---
 	// Name is the display name used when joining the room.
 	Name string
-	// DNSServer is an optional custom DNS resolver (e.g. "1.1.1.1:53").
+	// DNSServer is an optional custom DNS resolver (e.g. "8.8.8.8:53").
 	DNSServer string
 	// ProxyAddr / ProxyPort configure an outbound SOCKS5 proxy.
 	ProxyAddr string
@@ -240,9 +240,8 @@ func (s *Session) SetShouldReconnect(fn func() bool) {
 }
 
 // CreateRoom creates a new room via the auth provider and returns the room ID.
-// Only works when the session was created with Auth set to a provider that
-// supports room creation (wbstream). Returns [ErrRoomCreationUnsupported]
-// for providers that don't support it (e.g. telemost).
+// Only works when Auth names a provider that supports room creation. Built-in
+// providers currently return [ErrRoomCreationUnsupported].
 func CreateRoom(ctx context.Context, authName string) (string, error) {
 	p, err := auth.Get(authName)
 	if err != nil {

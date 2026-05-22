@@ -20,8 +20,6 @@ import (
 	"time"
 
 	"github.com/openlibrecommunity/olcrtc/internal/app/session"
-	"github.com/openlibrecommunity/olcrtc/internal/auth"
-	authWBStream "github.com/openlibrecommunity/olcrtc/internal/auth/wbstream"
 	"github.com/openlibrecommunity/olcrtc/internal/client"
 	"github.com/openlibrecommunity/olcrtc/internal/engine"
 	enginebuiltin "github.com/openlibrecommunity/olcrtc/internal/engine/builtin"
@@ -44,7 +42,7 @@ const (
 	localDNSServer      = "127.0.0.1:53"
 	videoHWNone         = "none"
 	testClientDeviceID  = "client-1"
-	defaultJitsiRoomURL = "https://meet.small-dm.ru/deadbeef"
+	defaultJitsiRoomURL = "https://meet.cryptopro.ru/deadbeef"
 )
 
 var (
@@ -55,6 +53,10 @@ var (
 	errSocksUnexpectedHello  = errors.New("unexpected SOCKS5 greeting")
 	errPayloadMismatchOffset = errors.New("payload mismatch at offset")
 	errFailoverCarrier       = errors.New("intentional failover carrier failure")
+
+	errServerExitedBeforeClientStart = errors.New("server exited cleanly before client start")
+	errClientExitedBeforeReady       = errors.New("client exited cleanly before ready")
+	errServerExitedBeforeClientReady = errors.New("server exited cleanly before client ready")
 )
 
 var (
@@ -278,6 +280,7 @@ func (s *memoryStream) CanSend() bool {
 }
 func (s *memoryStream) GetSendQueue() chan []byte { return nil }
 func (s *memoryStream) GetBufferedAmount() uint64 { return 0 }
+func (s *memoryStream) Reconnect(string)          {}
 func (s *memoryStream) Capabilities() engine.Capabilities {
 	return engine.Capabilities{ByteStream: true, VideoTrack: true}
 }
@@ -393,7 +396,7 @@ func realE2ECaseExpectation(carrierName, transportName string) realE2EExpectatio
 		//
 		// Jitsi video-path transports are marked Unstable. They depend on
 		// the external JVB ICE/media path and can flap on self-hosted
-		// instances (e.g. meet.small-dm.ru): ICE may stay in checking or
+		// instances (e.g. meet.cryptopro.ru): ICE may stay in checking or
 		// the video upstream may be suppressed even though signaling and
 		// the colibri-ws bridge are healthy. Flag the outcome, but don't
 		// fail the suite when these paths flap.
@@ -423,7 +426,7 @@ func realE2EExpectationLabel(expectation realE2EExpectation) string {
 // logUnstableOutcome records the result of an Unstable matrix entry
 // without failing the test. Unstable combos exist to keep the matrix
 // honest about transports that flap against a particular carrier
-// (e.g. seichannel against meet.small-dm.ru's bandwidth allocator)
+// (e.g. seichannel against meet.cryptopro.ru's bandwidth allocator)
 // while still surfacing whether the run happened to pass or fail.
 func logUnstableOutcome(t *testing.T, label, carrierName, transportName string, err error) {
 	t.Helper()
@@ -521,14 +524,12 @@ func realRoomURL(ctx context.Context, t *testing.T, carrierName string) string {
 		if *realE2EWBStreamRoom != "" {
 			return *realE2EWBStreamRoom
 		}
-		room, err := authWBStream.Provider{}.CreateRoom(ctx, auth.Config{Name: "olcrtc-e2e-room"})
-		if err != nil {
-			t.Skipf("skip wbstream real e2e: create room failed: %v", err)
-		}
-		return room
+		_ = ctx
+		t.Skip("skip wbstream real e2e: set -olcrtc.real-wbstream-room to an existing room ID")
+		return ""
 	case "jitsi":
 		// Jitsi has no notion of "creating" a room — names are conjured
-		// on first join. The default flag points at meet.small-dm.ru
+		// on first join. The default flag points at meet.cryptopro.ru
 		// by default. When the flag is left at its default value, a
 		// per-process random suffix is appended
 		// to the slug: two participants share a single room by design (one
@@ -743,6 +744,7 @@ func startTunnel(t *testing.T) *tunnelRuntime {
 	}
 }
 
+//nolint:cyclop // setup naturally branches on server/client/ready/timeout/context outcomes
 func startRealTunnel(
 	ctx context.Context,
 	t *testing.T,
@@ -773,6 +775,9 @@ func startRealTunnel(
 	select {
 	case err := <-serverErr:
 		cancel()
+		if err == nil {
+			return nil, errServerExitedBeforeClientStart
+		}
 		return nil, fmt.Errorf("server exited before client start: %w", err)
 	case <-time.After(2 * time.Second):
 	case <-runCtx.Done():
@@ -800,9 +805,15 @@ func startRealTunnel(
 	case <-ready:
 	case err := <-clientErr:
 		cancel()
+		if err == nil {
+			return nil, errClientExitedBeforeReady
+		}
 		return nil, fmt.Errorf("client exited before ready: %w", err)
 	case err := <-serverErr:
 		cancel()
+		if err == nil {
+			return nil, errServerExitedBeforeClientReady
+		}
 		return nil, fmt.Errorf("server exited before client ready: %w", err)
 	case <-time.After(*realE2ETimeout):
 		cancel()

@@ -1,3 +1,13 @@
+<div align="center">
+
+<img src="https://github.com/openlibrecommunity/material/blob/master/olcrtc.png" width="250" height="250">
+
+![License](https://img.shields.io/badge/license-WTFPL-0D1117?style=flat-square&logo=open-source-initiative&logoColor=green&labelColor=0D1117)
+![Golang](https://img.shields.io/badge/-Golang-0D1117?style=flat-square&logo=go&logoColor=00A7D0)
+
+</div>
+
+
 # Настройка YAML
 
 `olcrtc` читает runtime-настройки из одного YAML-файла. CLI принимает ровно один аргумент - путь к конфигу; отдельных CLI-флагов для режима, транспорта и провайдера больше нет.
@@ -9,9 +19,31 @@ olcrtc /etc/olcrtc/client.yaml
 
 Готовые примеры:
 
-- [`server.example.yaml`](./server.example.yaml)
-- [`client.example.yaml`](./client.example.yaml)
-- [`failover.example.yaml`](./failover.example.yaml)
+- [`server.jitsi.datachannel.yaml`](./examples/server.jitsi.datachannel.yaml) - jitsi + datachannel srv
+- [`client.jitsi.datachannel.yaml`](./examples/client.jitsi.datachannel.yaml) - jitsi + datachannel cnc
+- [`server.jitsi.videochannel.yaml`](./examples/server.jitsi.videochannel.yaml) - jitsi + videochannel srv
+- [`client.jitsi.videochannel.yaml`](./examples/client.jitsi.videochannel.yaml) - jitsi + videochannel cnc
+- [`server.jitsi.seichannel.yaml`](./examples/server.jitsi.seichannel.yaml) - jitsi + seichannel srv
+- [`client.jitsi.seichannel.yaml`](./examples/client.jitsi.seichannel.yaml) - jitsi + seichannel cnc
+- [`server.jitsi.vp8channel.yaml`](./examples/server.jitsi.vp8channel.yaml) - jitsi + vp8channel srv
+- [`client.jitsi.vp8channel.yaml`](./examples/client.jitsi.vp8channel.yaml) - jitsi + vp8channel cnc
+- [`server.telemost.datachannel.yaml`](./examples/server.telemost.datachannel.yaml) - telemost + datachannel srv
+- [`client.telemost.datachannel.yaml`](./examples/client.telemost.datachannel.yaml) - telemost + datachannel cnc
+- [`server.telemost.videochannel.yaml`](./examples/server.telemost.videochannel.yaml) - telemost + videochannel srv
+- [`client.telemost.videochannel.yaml`](./examples/client.telemost.videochannel.yaml) - telemost + videochannel cnc
+- [`server.telemost.seichannel.yaml`](./examples/server.telemost.seichannel.yaml) - telemost + seichannel srv
+- [`client.telemost.seichannel.yaml`](./examples/client.telemost.seichannel.yaml) - telemost + seichannel
+- [`server.telemost.vp8channel.yaml`](./examples/server.telemost.vp8channel.yaml) - telemost + vp8channel srv
+- [`client.telemost.vp8channel.yaml`](./examples/client.telemost.vp8channel.yaml) - telemost + vp8channel cnc
+- [`server.wbstream.datachannel.yaml`](./examples/server.wbstream.datachannel.yaml) - wbstream + datachannel srv
+- [`client.wbstream.datachannel.yaml`](./examples/client.wbstream.datachannel.yaml) - wbstream + datachannel cnc
+- [`server.wbstream.videochannel.yaml`](./examples/server.wbstream.videochannel.yaml) - wbstream + videochannel srv
+- [`client.wbstream.videochannel.yaml`](./examples/client.wbstream.videochannel.yaml) - wbstream + videochannel cnc
+- [`server.wbstream.seichannel.yaml`](./examples/server.wbstream.seichannel.yaml) - wbstream + seichannel srv
+- [`client.wbstream.seichannel.yaml`](./examples/client.wbstream.seichannel.yaml) - wbstream + seichannel cnc
+- [`server.wbstream.vp8channel.yaml`](./examples/server.wbstream.vp8channel.yaml) - wbstream + vp8channel srv
+- [`client.wbstream.vp8channel.yaml`](./examples/client.wbstream.vp8channel.yaml) - wbstream + vp8channel cnc
+- [`failover.yaml`](./examples/failover.yaml) - failover
 
 ## Схема
 
@@ -58,12 +90,12 @@ mode: srv
 auth:
   provider: jitsi
 room:
-  id: "https://meet.small-dm.ru/myroom"
+  id: "https://meet.cryptopro.ru/REPLACE_ME_WITH_ROOM_ID"
 crypto:
   key: "REPLACE_ME_WITH_64_HEX_CHARS"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 data: data
 ```
 
@@ -74,12 +106,12 @@ mode: cnc
 auth:
   provider: jitsi
 room:
-  id: "https://meet.small-dm.ru/myroom"
+  id: "https://meet.cryptopro.ru/REPLACE_ME_WITH_ROOM_ID"
 crypto:
   key: "REPLACE_ME_WITH_64_HEX_CHARS"
 net:
   transport: datachannel
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 socks:
   host: "127.0.0.1"
   port: 8808
@@ -132,7 +164,7 @@ mode: srv
 crypto:
   key_file: ./olcrtc.key
 net:
-  dns: "1.1.1.1:53"
+  dns: "8.8.8.8:53"
 data: data
 
 profiles:
@@ -161,22 +193,7 @@ failover:
 
 ## mode: gen
 
-`gen` создаёт Room ID заранее и печатает их в stdout. Сейчас это полезно прежде всего для `wbstream`, потому что его auth-провайдер реализует создание комнат.
-
-```yaml
-mode: gen
-auth:
-  provider: wbstream
-crypto:
-  key: "REPLACE_ME_WITH_64_HEX_CHARS"
-net:
-  transport: vp8channel
-  dns: "1.1.1.1:53"
-gen:
-  amount: 3
-data: data
-```
-
-```bash
-olcrtc gen.yaml
-```
+`gen` оставлен для auth-провайдеров, которые реализуют создание комнат через API.
+Текущие встроенные провайдеры (`jitsi`, `telemost`, `wbstream`) не создают комнаты
+через `olcrtc`: для `telemost` и `wbstream` создай комнату на сайте сервиса и
+вставь её в `room.id`; для `jitsi` укажи URL комнаты.
