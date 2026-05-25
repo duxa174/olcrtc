@@ -1,5 +1,35 @@
 # Changelog
 
+## [3.3.0](https://github.com/duxa174/olcrtc/compare/v3.2.0...v3.3.0) (2026-05-25)
+
+
+### Features
+
+* **jitsi:** add SCTP fallback when colibri-ws is unavailable ([c2170c0](https://github.com/duxa174/olcrtc/commit/c2170c058bcc2f9b0546889156bfac4171a46e73))
+* **protect:** add DNS retry logic to HTTP client ([cb6fe09](https://github.com/duxa174/olcrtc/commit/cb6fe0980d742ee81eafa9df3020f17440787544))
+* release ([f34f88f](https://github.com/duxa174/olcrtc/commit/f34f88f2a62db805dec92cc279fc514a67edc374))
+* **server:** outbound SOCKS5 proxy auth + fix silent startup error loss ([931d304](https://github.com/duxa174/olcrtc/commit/931d304f95b5bb73cc17816552983f21d9257b7e))
+
+
+### Bug Fixes
+
+* **ci:** remove variadic arg from Cross target ([be0f090](https://github.com/duxa174/olcrtc/commit/be0f0906e4b10f5952415c127b3d7fabec36201b))
+* **cnc:** use host network mode for build container ([587c13e](https://github.com/duxa174/olcrtc/commit/587c13e9618d5b7d606915dde6c24aa02b495cd3))
+* **jitsi:** add RTCP keepalive to prevent JVB session expiry ([fe85457](https://github.com/duxa174/olcrtc/commit/fe854577542074e020214a40fa2600becb854b96))
+* **vp8channel:** client ignores frames from other participants ([d0b0b8e](https://github.com/duxa174/olcrtc/commit/d0b0b8e9db0427d7342376db3f3def2cf2910f61))
+* **vp8channel:** demote noisy 'ignoring frame' log to trace ([11dfdcb](https://github.com/duxa174/olcrtc/commit/11dfdcb5127a5b2f098717d6c6c31fa9906d5eb1))
+* **vp8channel:** latch peer epoch on first frame received ([83a9494](https://github.com/duxa174/olcrtc/commit/83a94948aeb2586425aef5bdb35e202be388f564))
+* **vp8channel:** latch peer only after handshake confirms it ([6d529c1](https://github.com/duxa174/olcrtc/commit/6d529c16a80e572181804ad189cc9356880311b2)), closes [#67](https://github.com/duxa174/olcrtc/issues/67)
+* **vp8channel:** support multiple simultaneous clients in same room ([cefd260](https://github.com/duxa174/olcrtc/commit/cefd260e5d9049f1c2926112cc25e8a1cc1d736e)), closes [#67](https://github.com/duxa174/olcrtc/issues/67)
+
+
+### Refactors
+
+* **e2e:** extract local soak transport error constants ([f63aa0b](https://github.com/duxa174/olcrtc/commit/f63aa0bc4397647e9659a5169145a2e3a6bb9bc2))
+* improve error wrapping and extract constructor helper ([e677261](https://github.com/duxa174/olcrtc/commit/e677261fd567b8cd9abeba097db0cc680f0c7a33))
+* **jitsi:** extract openBridgeWS and openBridgeSCTP helpers ([e64ed16](https://github.com/duxa174/olcrtc/commit/e64ed167cc49f0dfa19705c6923815dd8763cb8a))
+* **server:** split socks5 connect logic ([5e4c2e2](https://github.com/duxa174/olcrtc/commit/5e4c2e27ee5ea1ac7053593c8acd67c4a1a0915a))
+
 ## [3.2.0](https://github.com/duxa174/olcrtc/compare/v3.1.0...v3.2.0) (2026-05-23)
 
 
