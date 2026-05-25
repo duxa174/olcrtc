@@ -9,6 +9,9 @@
 
 # Мануальная сборка
 
+> **Важно:** Обязательно проверяйте, есть ли сервис видеозвонков у вас в белых списках. Если его там нет - используйте другой. Список всех сервисов в белых списках скоро будет опубликован.
+
+
 Этот способ для тех кто хочет собрать бинарник руками без Docker/Podman.
 Нужен Go 1.25+, mage, git.
 
@@ -155,7 +158,7 @@ openssl rand -hex 32
 
 ### jitsi + datachannel (рекомендуется)
 
-Самый простой способ: используй любой self-hosted или публичный Jitsi Meet инстанс. Регистрация не нужна, имя комнаты выдумывается на лету. По умолчанию в примерах ниже — `meet.cryptopro.ru`, но подойдёт любой другой (`meet.jit.si`, свой self-hosted и т.п.).
+Самый простой способ: используй любой self-hosted или публичный Jitsi Meet инстанс. Регистрация не нужна, имя комнаты выдумывается на лету. Доступные публичные серверы: `meet1.arbitr.ru` и `meet.cryptopro.ru` - **обязательно проверь в браузере, какой из них работает в твоей сети**, и используй тот, который открывается. Также подойдёт любой другой (`meet.jit.si`, свой self-hosted и т.п.).
 
 Создай YAML конфиг:
 
@@ -165,7 +168,8 @@ mode: srv
 auth:
   provider: jitsi
 room:
-  id: "https://meet.cryptopro.ru/myroom"
+  # Используйте meet1.arbitr.ru или meet.cryptopro.ru - тот, что работает в вашей сети
+  id: "https://meet1.arbitr.ru/myroom"
 crypto:
   key: "d823fa01cb3e0609b67322f7cf984c4ee2e4ce2e294936fc24ef38c9e59f4799"
 net:
@@ -180,13 +184,13 @@ data: data
 ./build/olcrtc-linux-amd64 server.yaml
 ```
 
-Сервер сам присоединится к комнате (в качестве участника без камеры/микрофона) и будет ждать, пока клиент тоже зайдёт. Без второго участника Jicofo не выдаёт session-initiate — это особенность Jitsi.
+Сервер сам присоединится к комнате (в качестве участника без камеры/микрофона) и будет ждать, пока клиент тоже зайдёт. Без второго участника Jicofo не выдаёт session-initiate - это особенность Jitsi.
 
 ### wbstream + vp8channel (альтернатива)
 
 Создай руму через сайт [wbstream](https://stream.wb.ru) и вставь её ID в `room.id`.
 
-`wbstream + datachannel` **не работает** в обычном guest flow — WB Stream выдаёт токены с `canPublishData=false`, и DC не маршрутизирует данные. Для обычного использования выбирай `vp8channel`.
+`wbstream + datachannel` **не работает** в обычном guest flow - WB Stream выдаёт токены с `canPublishData=false`, и DC не маршрутизирует данные. Для обычного использования выбирай `vp8channel`.
 
 Создай YAML конфиг:
 
@@ -239,7 +243,8 @@ mode: cnc
 auth:
   provider: jitsi
 room:
-  id: "https://meet.cryptopro.ru/myroom"
+  # Используйте meet1.arbitr.ru или meet.cryptopro.ru - тот, что работает в вашей сети
+  id: "https://meet1.arbitr.ru/myroom"
 crypto:
   key: "<hex-key-такой-же-как-на-сервере>"
 net:

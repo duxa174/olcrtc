@@ -8,8 +8,10 @@ auth:
 
 # Для jitsi: полный URL комнаты (https://host/room или host/room).
 # Должен совпадать с клиентом.
+# Доступные серверы: meet1.arbitr.ru или meet.cryptopro.ru
+# Проверьте в браузере, какой работает в вашей сети.
 room:
-  id: "https://meet.cryptopro.ru/REPLACE_WITH_ROOM_NAME"
+  id: "https://meet1.arbitr.ru/REPLACE_WITH_ROOM_NAME"
 
 crypto:
   # 32 байта в hex (64 символа). Сгенерировать: openssl rand -hex 32
@@ -28,6 +30,8 @@ liveness:
 socks:
   proxy_addr: "" # например "127.0.0.1"
   proxy_port: 0 # например 1080
+  proxy_user: "" # необязательная auth для upstream-прокси (RFC 1929)
+  proxy_pass: ""
 
 video:
   width: 1920

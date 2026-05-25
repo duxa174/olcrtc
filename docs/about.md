@@ -21,6 +21,8 @@
 
 В сценариях, где прямой доступ к произвольному VPS / IP заблокирован, приходится переносить трафик через сервисы, которые уже доступны у пользователя. Для внешнего наблюдателя соединение выглядит как обычный WebRTC-звонок по разрешенному IP сервиса, а полезная нагрузка внутри дополнительно шифруется общим ключом `crypto.key`.
 
+> **Важно:** Обязательно проверяйте, есть ли сервис видеозвонков у вас в белых списках. Если его там нет - используйте другой. Список всех сервисов в белых списках скоро будет опубликован.
+
 Базовая схема:
 
 ```text
@@ -70,7 +72,7 @@ olcrtc client.yaml
 
 | Provider | Engine | Комментарий |
 |---|---|---|
-| `jitsi` | `jitsi` | URL комнаты Jitsi, без отдельной регистрации |
+| `jitsi` | `jitsi` | URL комнаты Jitsi (`meet1.arbitr.ru` или `meet.cryptopro.ru`), без отдельной регистрации |
 | `telemost` | `goolom` | credentials через Yandex Telemost API, с отдельной регистрацией |
 | `wbstream` | `livekit` | credentials через WbBStream API, с отдельной регистрацией |
 | `none` | задаётся в `engine.name` | прямой engine-режим с `engine.url` и `engine.token`, с отдельной регистрацией |
@@ -128,7 +130,9 @@ mode: srv
 auth:
   provider: jitsi
 room:
-  id: "https://meet.cryptopro.ru/REPLACE_ME_WITH_ROOM_ID"
+  # Используйте тот Jitsi-сервер, который работает в вашей сети:
+  # https://meet1.arbitr.ru/ROOM  или  https://meet.cryptopro.ru/ROOM
+  id: "https://meet1.arbitr.ru/REPLACE_ME_WITH_ROOM_ID"
 crypto:
   key: "REPLACE_ME_WITH_64_HEX_CHARS"
 net:
@@ -144,7 +148,9 @@ mode: cnc
 auth:
   provider: jitsi
 room:
-  id: "https://meet.cryptopro.ru/REPLACE_ME_WITH_ROOM_ID"
+  # Используйте тот Jitsi-сервер, который работает в вашей сети:
+  # https://meet1.arbitr.ru/ROOM  или  https://meet.cryptopro.ru/ROOM
+  id: "https://meet1.arbitr.ru/REPLACE_ME_WITH_ROOM_ID"
 crypto:
   key: "REPLACE_ME_WITH_64_HEX_CHARS"
 net:
@@ -208,7 +214,8 @@ Go версия в сборочных скриптах: `1.25`. Для `videocha
 ```go
 sess, err := olcrtc.New(ctx, olcrtc.Config{
     Auth:   "jitsi",
-    RoomID: "https://meet.cryptopro.ru/myroom",
+    // Используйте meet1.arbitr.ru или meet.cryptopro.ru - тот, что работает в вашей сети
+    RoomID: "https://meet1.arbitr.ru/myroom",
 })
 if err != nil {
     return err
@@ -222,7 +229,8 @@ conn, err := sess.Dial(ctx)
 srv := tunnel.New(tunnel.Config{
     Transport: "datachannel",
     Carrier:   "jitsi",
-    RoomURL:   "https://meet.cryptopro.ru/myroom",
+    // Используйте meet1.arbitr.ru или meet.cryptopro.ru - тот, что работает в вашей сети
+    RoomURL:   "https://meet1.arbitr.ru/myroom",
     KeyHex:    "<64-char hex>",
     DNSServer: "8.8.8.8:53",
 })

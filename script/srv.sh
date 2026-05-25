@@ -6,7 +6,7 @@ set -e
 
 PODMAN_ID=$(tr -dc 'a-z0-9' </dev/urandom | head -c 8)
 CONTAINER_NAME="olcrtc-server-$PODMAN_ID"
-IMAGE_NAME="docker.io/library/golang:1.25-alpine3.22"
+IMAGE_NAME="docker.io/library/golang:1.26-alpine3.22"
 REPO_URL="https://github.com/openlibrecommunity/olcrtc.git"
 WORK_DIR="/tmp/olcrtc-deploy-$PODMAN_ID"
 BRANCH="master"
@@ -127,9 +127,29 @@ echo ""
 GEN_ROOM=0
 
 if [ "$CARRIER" = "jitsi" ]; then
-    read -p "Jitsi base URL [default: https://meet.cryptopro.ru/]: " JITSI_BASE_INPUT
-    JITSI_BASE_URL=${JITSI_BASE_INPUT:-https://meet.cryptopro.ru/}
-    JITSI_BASE_URL="${JITSI_BASE_URL%/}"
+    echo ""
+    echo "Выберите Jitsi-сервер (проверьте в браузере, какой работает в вашей сети):"
+    echo "  1) https://meet1.arbitr.ru/"
+    echo "  2) https://meet.cryptopro.ru/"
+    echo "  3) Другой (ввести вручную)"
+    read -p "Введите номер [1-3, по умолчанию: 1]: " JITSI_SERVER_CHOICE
+
+    case "$JITSI_SERVER_CHOICE" in
+        2)
+            JITSI_BASE_URL="https://meet.cryptopro.ru"
+            ;;
+        3)
+            read -p "Введите URL Jitsi-сервера: " JITSI_BASE_INPUT
+            JITSI_BASE_URL="${JITSI_BASE_INPUT%/}"
+            if [ -z "$JITSI_BASE_URL" ]; then
+                echo "[X] URL не может быть пустым"
+                exit 1
+            fi
+            ;;
+        *)
+            JITSI_BASE_URL="https://meet1.arbitr.ru"
+            ;;
+    esac
 
     echo "Room options:"
     echo "  1) Auto-generate new room (recommended)"

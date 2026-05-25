@@ -59,6 +59,7 @@ olcrtc /etc/olcrtc/client.yaml
 | `socks.host` / `socks.port` | локальный SOCKS5 listener в `mode: cnc` |
 | `socks.user` / `socks.pass` | необязательная auth для входящих SOCKS5-подключений |
 | `socks.proxy_addr` / `socks.proxy_port` | исходящий SOCKS5-прокси на серверной стороне |
+| `socks.proxy_user` / `socks.proxy_pass` | необязательная auth для upstream-прокси (RFC 1929) |
 | `engine.name` / `engine.url` / `engine.token` | прямой engine-режим, только при `auth.provider: none` |
 | `video.*` | настройки `videochannel` |
 | `vp8.*` | настройки `vp8channel` |
@@ -85,12 +86,18 @@ olcrtc /etc/olcrtc/client.yaml
 
 ### Сервер
 
+> **Jitsi-провайдер:** используйте тот сервер, который доступен в вашей сети. Проверьте оба в браузере и выберите рабочий:
+> - `https://meet1.arbitr.ru/` 
+> - `https://meet.cryptopro.ru/`
+
 ```yaml
 mode: srv
 auth:
   provider: jitsi
 room:
-  id: "https://meet.cryptopro.ru/REPLACE_ME_WITH_ROOM_ID"
+  # Используйте тот Jitsi-сервер, который работает в вашей сети:
+  # https://meet1.arbitr.ru/ROOM  или  https://meet.cryptopro.ru/ROOM
+  id: "https://meet1.arbitr.ru/REPLACE_ME_WITH_ROOM_ID"
 crypto:
   key: "REPLACE_ME_WITH_64_HEX_CHARS"
 net:
@@ -106,7 +113,9 @@ mode: cnc
 auth:
   provider: jitsi
 room:
-  id: "https://meet.cryptopro.ru/REPLACE_ME_WITH_ROOM_ID"
+  # Используйте тот Jitsi-сервер, который работает в вашей сети:
+  # https://meet1.arbitr.ru/ROOM  или  https://meet.cryptopro.ru/ROOM
+  id: "https://meet1.arbitr.ru/REPLACE_ME_WITH_ROOM_ID"
 crypto:
   key: "REPLACE_ME_WITH_64_HEX_CHARS"
 net:

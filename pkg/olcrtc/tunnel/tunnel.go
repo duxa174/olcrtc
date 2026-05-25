@@ -7,7 +7,8 @@
 //	srv := tunnel.New(tunnel.Config{
 //	    Transport: "datachannel",
 //	    Carrier:   "jitsi",
-//	    RoomURL:   "https://meet.cryptopro.ru/myroom",
+//	    // Use meet1.arbitr.ru or meet.cryptopro.ru - whichever works in your network
+//	    RoomURL:   "https://meet1.arbitr.ru/myroom",
 //	    KeyHex:    "<64-char hex>",
 //	    DNSServer: "8.8.8.8:53",
 //	    AuthHook: func(deviceID string, claims map[string]any) (string, error) {
@@ -85,6 +86,8 @@ type Config struct {
 	DNSServer      string // resolver used for target dials, e.g. "8.8.8.8:53"
 	SOCKSProxyAddr string // optional outbound SOCKS5 proxy host
 	SOCKSProxyPort int    // optional outbound SOCKS5 proxy port
+	SOCKSProxyUser string // optional username for SOCKS5 proxy auth (RFC 1929)
+	SOCKSProxyPass string // optional password for SOCKS5 proxy auth (RFC 1929)
 
 	// --- transport tuning ---
 	// TransportOptions carries transport-specific tuning. Use the Options
@@ -128,6 +131,8 @@ func (s *Server) Run(ctx context.Context) error {
 		DNSServer:        s.cfg.DNSServer,
 		SOCKSProxyAddr:   s.cfg.SOCKSProxyAddr,
 		SOCKSProxyPort:   s.cfg.SOCKSProxyPort,
+		SOCKSProxyUser:   s.cfg.SOCKSProxyUser,
+		SOCKSProxyPass:   s.cfg.SOCKSProxyPass,
 		TransportOptions: s.cfg.TransportOptions,
 		AuthHook:         s.cfg.AuthHook,
 		OnSessionOpen:    s.cfg.OnSessionOpen,

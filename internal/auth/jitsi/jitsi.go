@@ -3,7 +3,7 @@
 //
 // Public Jitsi Meet servers do not require authentication for guest access;
 // the only "credentials" the engine needs are the host+room pair extracted
-// from a user-supplied room URL. This provider does no HTTP at all — it just
+// from a user-supplied room URL. This provider does no HTTP at all - it just
 // parses the URL and forwards host+room to the engine via auth.Credentials.
 //
 // Supported RoomURL forms:
@@ -14,7 +14,7 @@
 //
 // Optional URL path prefixes (e.g. "/jitsi") are preserved as part of the
 // host when present, so deployments behind a path-mounted reverse proxy work
-// transparently — the j library accepts any host string the WebSocket dial
+// transparently - the j library accepts any host string the WebSocket dial
 // can resolve.
 package jitsi
 
@@ -41,17 +41,18 @@ type Provider struct{}
 // Engine reports which engine consumes credentials from this auth provider.
 func (Provider) Engine() string { return "jitsi" }
 
-const defaultServiceURL = "https://meet.cryptopro.ru"
+const defaultServiceURL = "https://meet1.arbitr.ru"
 
 // DefaultServiceURL returns the default Jitsi Meet service URL used by config
-// defaults and interactive helpers.
+// defaults and interactive helpers. Users should verify which server is
+// accessible in their network: https://meet1.arbitr.ru or https://meet.cryptopro.ru
 func (Provider) DefaultServiceURL() string { return defaultServiceURL }
 
 // Issue parses cfg.RoomURL into host+room and returns engine credentials.
 //
 // The URL field of the returned Credentials carries the Jitsi host (e.g.
 // "meet.example.com"); the room name lives in Extra under CredentialKeyRoom.
-// Token is unused — Jitsi guest access requires no token.
+// Token is unused - Jitsi guest access requires no token.
 func (Provider) Issue(_ context.Context, cfg auth.Config) (auth.Credentials, error) {
 	host, room, err := parseRoomURL(cfg.RoomURL)
 	if err != nil {

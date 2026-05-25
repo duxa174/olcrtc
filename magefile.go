@@ -61,6 +61,7 @@ func Cross() error {
 		}
 	}
 
+	fmt.Printf("✅ Built %d platform(s)\n", len(targets))
 	return nil
 }
 

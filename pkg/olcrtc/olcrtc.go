@@ -1,6 +1,6 @@
 // Package olcrtc exposes olcrtc as an embeddable Go library.
 //
-// Typical usage — obtain a [net.Conn]-compatible handle and dial:
+// Typical usage - obtain a [net.Conn]-compatible handle and dial:
 //
 //	sess, err := olcrtc.New(ctx, olcrtc.Config{
 //	    Engine: "livekit",
@@ -9,13 +9,14 @@
 //	})
 //	if err != nil { ... }
 //	conn, err := sess.Dial(ctx)  // blocks until WebRTC data channel is ready
-//	// conn implements net.Conn — pass it to sing-box / any io.ReadWriter consumer
+//	// conn implements net.Conn - pass it to sing-box / any io.ReadWriter consumer
 //
 // Built-in auth providers (jitsi, telemost, wbstream):
 //
 //	sess, err := olcrtc.New(ctx, olcrtc.Config{
 //	    Auth:   "jitsi",
-//	    RoomID: "https://meet.cryptopro.ru/myroom",
+//	    // Use meet1.arbitr.ru or meet.cryptopro.ru - whichever works in your network
+//	    RoomID: "https://meet1.arbitr.ru/myroom",
 //	})
 //
 // Import the implementations you need via blank imports, or call [RegisterDefaults]:

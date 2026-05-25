@@ -10,6 +10,8 @@
 
 # Настройки
 
+> **Важно:** Обязательно проверяйте, есть ли сервис видеозвонков у вас в белых списках. Если его там нет - используйте другой. Список всех сервисов в белых списках скоро будет опубликован.
+
 ## Матрица совместимости
 
 | Transport | telemost | wbstream | jitsi |
@@ -28,11 +30,11 @@
 
 **WBStream:** все транспорты кроме datachannel работают. DataChannel в обычном guest flow без выдавания модератора не работает - WB Stream выдаёт токены с `canPublishData=false`, и DC не маршрутизирует данные.
 
-**Jitsi:** datachannel стабильно проходит - реализован поверх colibri-ws bridge channel и шлёт байты через `EndpointMessage{raw}` broadcast. Подходит для self-hosted и публичных Jitsi Meet инстансов без аутентификации (`https://meet.cryptopro.ru/...`, `https://meet.jit.si/...` и т.п.). Видео-транспорты (vp8channel, seichannel, videochannel) экспонируют sendable VideoTrack через pion PeerConnection после Jingle session-accept, но Jicofo требует дополнительных протокольных шагов (LastN, ReceiverVideoConstraints, source-add) для маршрутизации видео - поэтому они помечены `~` .
+**Jitsi:** datachannel стабильно проходит - реализован поверх colibri-ws bridge channel и шлёт байты через `EndpointMessage{raw}` broadcast. Подходит для self-hosted и публичных Jitsi Meet инстансов без аутентификации (`https://meet1.arbitr.ru/...`, `https://meet.cryptopro.ru/...`, `https://meet.jit.si/...` и т.п.). Проверьте в браузере, какой из серверов доступен в вашей сети. Видео-транспорты (vp8channel, seichannel, videochannel) экспонируют sendable VideoTrack через pion PeerConnection после Jingle session-accept, но Jicofo требует дополнительных протокольных шагов (LastN, ReceiverVideoConstraints, source-add) для маршрутизации видео - поэтому они помечены `~` .
 
-**Jitsi + seichannel — отдельная оговорка.** SEI NAL-юниты идут пассажиром в H.264 видеопотоке, а Jicofo на self-hosted инстансах (например `meet.cryptopro.ru`) периодически режет/откладывает upstream видео когда ресивера в комнате формально нет - для нас это выглядит как `seichannel ack timeout` при формально живом PeerConnection. В steady-state транспорт работает, но e2e матрица помечает его `Unstable` (флаппит): зелёного и красного результата в CI достаточно, тест suite на этом не валится. Для надёжной передачи данных через jitsi предпочтительнее `datachannel` или `vp8channel`.
+**Jitsi + seichannel - отдельная оговорка.** SEI NAL-юниты идут пассажиром в H.264 видеопотоке, а Jicofo на self-hosted инстансах (например `meet1.arbitr.ru`, `meet.cryptopro.ru`) периодически режет/откладывает upstream видео когда ресивера в комнате формально нет - для нас это выглядит как `seichannel ack timeout` при формально живом PeerConnection. В steady-state транспорт работает, но e2e матрица помечает его `Unstable` (флаппит): зелёного и красного результата в CI достаточно, тест suite на этом не валится. Для надёжной передачи данных через jitsi предпочтительнее `datachannel` или `vp8channel`.
 
-**Рекомендуемая комбинация: `jitsi + datachannel`** — стабильно работает на любом self-hosted или публичном Jitsi Meet (например `meet.cryptopro.ru`), не требует регистрации, простая руму создания. Альтернатива: `wbstream + vp8channel` — стабильно для коммерческих сценариев, не требует специальных прав.
+**Рекомендуемая комбинация: `jitsi + datachannel`** - стабильно работает на любом self-hosted или публичном Jitsi Meet (например `meet1.arbitr.ru` или `meet.cryptopro.ru` - проверьте, какой доступен в вашей сети), не требует регистрации, простая руму создания. Альтернатива: `wbstream + vp8channel` - стабильно для коммерческих сценариев, не требует специальных прав.
 
 Скорость по убыванию: `datachannel` > `vp8channel` > `seichannel` > `videochannel`
 
@@ -110,6 +112,11 @@ transport. Используй одинаковые traffic-настройки н
 |-----------|----------|
 | `socks.proxy_addr` | Адрес SOCKS5-прокси для исходящего трафика сервера |
 | `socks.proxy_port` | Порт этого прокси |
+| `socks.proxy_user` | Логин для аутентификации на upstream-прокси (необязательно) |
+| `socks.proxy_pass` | Пароль для аутентификации на upstream-прокси (необязательно) |
+
+Если `socks.proxy_user` пуст - сервер ходит к прокси без аутентификации (метод `0x00`).
+Если задан - используется username/password auth по RFC 1929 (`proxy_pass` опционален, может быть пустым).
 
 ---
 
@@ -186,7 +193,7 @@ transport. Используй одинаковые traffic-настройки н
 
 ### wbstream + datachannel (не работает в обычном guest flow)
 
-WB Stream DataChannel **не работает** в обычном guest flow — WB Stream выдаёт токены с `canPublishData=false`, и DC не маршрутизирует данные. Этот режим помечен как expected fail в E2E тестах. Для обычного использования выбирай `vp8channel`, `seichannel` или `videochannel`.
+WB Stream DataChannel **не работает** в обычном guest flow - WB Stream выдаёт токены с `canPublishData=false`, и DC не маршрутизирует данные. Этот режим помечен как expected fail в E2E тестах. Для обычного использования выбирай `vp8channel`, `seichannel` или `videochannel`.
 
 ```yaml
 # room ID нужно создать вручную через https://stream.wb.ru
